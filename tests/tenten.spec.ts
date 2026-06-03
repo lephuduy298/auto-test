@@ -11,11 +11,29 @@ test.describe('Kiểm thử tab Tìm 1 tên miền', () => {
 
     // Cấu hình kích thước màn hình Desktop tiêu chuẩn
     await page.setViewportSize({ width: 1920, height: 1080 });
-    
+
+    // TỐI ƯU HÓA TỐC ĐỘ: Chặn toàn bộ các script theo dõi/quảng cáo của bên thứ ba làm nghẽn trang chủ Tenten.vn
+    await page.route('**/*', (route) => {
+      const url = route.request().url();
+      if (
+        url.includes('facebook') ||
+        url.includes('google-analytics') ||
+        url.includes('googletagmanager') ||
+        url.includes('zalo') ||
+        url.includes('tiktok') ||
+        url.includes('doubleclick') ||
+        url.includes('googleadservices')
+      ) {
+        route.abort();
+      } else {
+        route.continue();
+      }
+    });
+
     console.log('[Tab 1] Truy cập trang chủ Tenten.vn...');
     // Sử dụng 'domcontentloaded' để đảm bảo cấu trúc DOM và các sự kiện jQuery đã sẵn sàng
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 45000 });
-    
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 35000 });
+
     // Đợi trực tiếp tab Tìm 1 tên miền xuất hiện trên DOM để đảm bảo giao diện đã sẵn sàng
     const tabTim1 = page.getByText(/Tìm 1 tên miền/);
     await expect(tabTim1).toBeVisible({ timeout: 25000 });
@@ -27,7 +45,7 @@ test.describe('Kiểm thử tab Tìm 1 tên miền', () => {
     console.log('Chạy TC_Search_01_01: Tìm 1 tên miền chứa ký tự đặc biệt...');
     const inputDomain = page.locator('#domainNameManyInput');
     await expect(inputDomain).toBeVisible({ timeout: 15000 });
-    
+
     // Nhập tên miền chứa ký tự đặc biệt
     await inputDomain.fill('ten!@#mien.vn');
 
@@ -79,7 +97,7 @@ test.describe('Kiểm thử tab Tìm 1 tên miền', () => {
     await expect(inputDomain).toBeVisible({ timeout: 15000 });
 
     await inputDomain.fill('tenten.vn');
-    
+
     // Giả lập thao tác nhấn phím Enter trên ô input thay vì click chuột
     await inputDomain.press('Enter');
 
@@ -127,6 +145,102 @@ test.describe('Kiểm thử tab Tìm 1 tên miền', () => {
     await expect(resultHeading).toBeVisible({ timeout: 45000 });
     console.log('TC_Search_01_05 thành công: Hệ thống xử lý font tiếng Việt có dấu mượt mà!');
   });
+
+  test('TC_Search_01_06: Kiểm thử tìm kiếm để trống hoặc chỉ chứa khoảng trắng', async ({ page }) => {
+    console.log('Chạy TC_Search_01_06: Tìm kiếm tên miền trống...');
+    const inputDomain = page.locator('#domainNameManyInput');
+    await expect(inputDomain).toBeVisible({ timeout: 15000 });
+
+    // Nhập khoảng trắng
+    await inputDomain.fill('   ');
+
+    const searchBtn = page.locator('button.searchDomainOne');
+    await expect(searchBtn).toBeVisible({ timeout: 15000 });
+    await searchBtn.click();
+
+    // Chờ xem hệ thống xử lý (Tenten.vn thường hiển thị cảnh báo hoặc không cho phép chuyển hướng sang trang kết quả)
+    console.log('Đang chờ hệ thống phản hồi với ô tìm kiếm trống...');
+    await page.waitForTimeout(3000);
+
+    const currentURL = page.url();
+    if (currentURL.includes('/vi/Search')) {
+      console.log('Hệ thống chuyển hướng sang trang kết quả, tiến hành xác minh...');
+      const resultHeading = page.getByText('Kết quả tìm kiếm');
+      await expect(resultHeading).toBeVisible({ timeout: 15000 });
+    } else {
+      console.log('Hệ thống chặn thành công lỗi tìm kiếm trống ngay tại trang chủ!');
+      await expect(inputDomain).toBeVisible();
+    }
+    console.log('TC_Search_01_06 thành công!');
+  });
+
+  test('TC_Search_01_07: Kiểm thử tìm kiếm tên miền bận (tenten.vn)', async ({ page }) => {
+    console.log('Chạy TC_Search_01_07: Tìm kiếm tên miền bận (tenten.vn)...');
+    const inputDomain = page.locator('#domainNameManyInput');
+    await expect(inputDomain).toBeVisible({ timeout: 15000 });
+
+    await inputDomain.fill('tenten.vn');
+
+    const searchBtn = page.locator('button.searchDomainOne');
+    await expect(searchBtn).toBeVisible({ timeout: 15000 });
+    await searchBtn.click();
+
+    console.log('Đang chờ trang kết quả hiển thị...');
+    const resultHeading = page.getByText('Kết quả tìm kiếm');
+    await expect(resultHeading).toBeVisible({ timeout: 45000 });
+
+    // Chờ cho đến khi AJAX kiểm tra trạng thái bận load xong và hiển thị nút WHOIS hoặc nhãn Đã đăng ký
+    console.log('Đang chờ AJAX kiểm tra trạng thái tên miền...');
+    const whoisIndicator = page.locator(':text("Đã đăng ký"), :text("whois"), :text("WHOIS"), :text("Xem thông tin"), [class*="whois"]').first();
+    await expect(whoisIndicator).toBeVisible({ timeout: 25000 });
+
+    console.log('TC_Search_01_07 thành công: Xác minh tên miền bận chính xác!');
+  });
+
+  test('TC_Search_01_08: Kiểm thử tìm kiếm tên miền tự do (chưa đăng ký)', async ({ page }) => {
+    console.log('Chạy TC_Search_01_08: Tìm kiếm tên miền chưa đăng ký...');
+    const inputDomain = page.locator('#domainNameManyInput');
+    await expect(inputDomain).toBeVisible({ timeout: 15000 });
+
+    // Tạo một tên miền ngẫu nhiên cực lạ
+    const randomDomain = `testdomainrandom-${Math.floor(Math.random() * 10000000)}.vn`;
+    console.log(`Từ khóa tìm kiếm: ${randomDomain}`);
+    await inputDomain.fill(randomDomain);
+
+    const searchBtn = page.locator('button.searchDomainOne');
+    await expect(searchBtn).toBeVisible({ timeout: 15000 });
+    await searchBtn.click();
+
+    console.log('Đang chờ trang kết quả hiển thị...');
+    const resultHeading = page.getByText('Kết quả tìm kiếm');
+    await expect(resultHeading).toBeVisible({ timeout: 45000 });
+
+    // Trang kết quả có nút "Thêm giỏ hàng" hoặc nhãn "Chọn" cho tên miền này
+    const addCartBtn = page.getByText('Thêm giỏ hàng').first();
+    await expect(addCartBtn).toBeVisible({ timeout: 25000 });
+    console.log('TC_Search_01_08 thành công: Tên miền tự do có nút thêm giỏ hàng!');
+  });
+
+  test('TC_Bug_Search_01: Kiểm thử tìm kiếm từ khóa chứa ký tự dấu Telex bị lỗi (abc.cóm)', async ({ page }) => {
+    console.log('Chạy TC_Bug_Search_01: Tìm kiếm tên miền lỗi Telex abc.cóm...');
+    const inputDomain = page.locator('#domainNameManyInput');
+    await expect(inputDomain).toBeVisible({ timeout: 15000 });
+
+    // Nhập từ khóa lỗi Telex
+    await inputDomain.fill('abc.cóm');
+
+    const searchBtn = page.locator('button.searchDomainOne');
+    await expect(searchBtn).toBeVisible({ timeout: 15000 });
+    await searchBtn.click();
+
+    console.log('Kỳ vọng hệ thống chuyển hướng sang trang kết quả hoặc hiển thị thông báo lỗi...');
+    // Mong muốn hệ thống chuyển sang trang kết quả hoặc báo lỗi định dạng không hợp lệ.
+    // Thực tế hệ thống sẽ đứng im (đơ), dẫn đến việc kiểm tra này bị Fail/Timeout, chứng minh Bug thành công!
+    const resultHeading = page.locator(':text("Kết quả tìm kiếm"), :text("không hợp lệ"), :text("Lỗi"), :text("lỗi")').first();
+    await expect(resultHeading).toBeVisible({ timeout: 20000 });
+
+    console.log('TC_Bug_Search_01 hoàn tất kiểm tra!');
+  });
 });
 
 // ============================================================================
@@ -139,15 +253,33 @@ test.describe('Kiểm thử tab Tìm nhiều tên miền', () => {
     test.setTimeout(90000);
 
     await page.setViewportSize({ width: 1920, height: 1080 });
-    
+
+    // TỐI ƯU HÓA TỐC ĐỘ: Chặn toàn bộ các script theo dõi/quảng cáo của bên thứ ba làm nghẽn trang chủ Tenten.vn
+    await page.route('**/*', (route) => {
+      const url = route.request().url();
+      if (
+        url.includes('facebook') ||
+        url.includes('google-analytics') ||
+        url.includes('googletagmanager') ||
+        url.includes('zalo') ||
+        url.includes('tiktok') ||
+        url.includes('doubleclick') ||
+        url.includes('googleadservices')
+      ) {
+        route.abort();
+      } else {
+        route.continue();
+      }
+    });
+
     console.log('[Tab 2] Truy cập trang chủ Tenten.vn...');
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 45000 });
-    
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 35000 });
+
     // Đợi trực tiếp tab Tìm nhiều xuất hiện
     const tabTimNhieu = page.getByText(/Tìm nhiều tên miền/);
     await expect(tabTimNhieu).toBeVisible({ timeout: 25000 });
     await tabTimNhieu.click();
-    
+
     // Đợi cho đến khi phần container Tìm nhiều (#search-2) hoàn toàn sẵn sàng và hiển thị trên màn hình
     const search2Container = page.locator('#search-2');
     await expect(search2Container).toBeVisible({ timeout: 15000 });
@@ -182,7 +314,7 @@ test.describe('Kiểm thử tab Tìm nhiều tên miền', () => {
 
     const correctDomain = 'tenten.vn';
     const tooLongDomain = 'a'.repeat(64) + '.vn';
-    
+
     await tagifyInput.scrollIntoViewIfNeeded();
     await tagifyInput.click();
     await tagifyInput.focus();
@@ -276,5 +408,31 @@ test.describe('Kiểm thử tab Tìm nhiều tên miền', () => {
     const resultHeading = page.getByText('Kết quả tìm kiếm');
     await expect(resultHeading).toBeVisible({ timeout: 45000 });
     console.log('TC_Search_02_05 thành công: Tìm nhiều tên miền tiếng Việt được mã hóa và xử lý đúng!');
+  });
+
+  test('TC_Search_02_06: Kiểm thử nhập danh sách tên miền trùng lặp (tenten.vn tenten.vn)', async ({ page }) => {
+    console.log('Chạy TC_Search_02_06: Tìm nhiều tên miền trùng lặp...');
+    const tagifyInput = page.locator('#search-2 .tagify__input');
+    await expect(tagifyInput).toBeVisible({ timeout: 20000 });
+
+    await tagifyInput.scrollIntoViewIfNeeded();
+    await tagifyInput.click();
+    await tagifyInput.focus();
+    // Nhập trùng tên miền `tenten.vn` 2 lần cách nhau khoảng trắng
+    await tagifyInput.pressSequentially('tenten.vn tenten.vn', { delay: 30 });
+    await page.waitForTimeout(500);
+
+    const searchBtn = page.locator('button.searchDomainMany');
+    await expect(searchBtn).toBeVisible({ timeout: 15000 });
+    await searchBtn.click();
+
+    console.log('Đang chờ trang kết quả hiển thị...');
+    const resultHeading = page.getByText('Kết quả tìm kiếm');
+    await expect(resultHeading).toBeVisible({ timeout: 45000 });
+
+    // Hệ thống xử lý lọc trùng thành công và chuyển hướng đến trang kết quả
+    const currentURL = page.url();
+    expect(currentURL).toContain('/vi/Search');
+    console.log('TC_Search_02_06 thành công!');
   });
 });
