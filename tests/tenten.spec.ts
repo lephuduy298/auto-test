@@ -34,6 +34,17 @@ test.describe('Kiểm thử tab Tìm 1 tên miền', () => {
     // Sử dụng 'domcontentloaded' để đảm bảo cấu trúc DOM và các sự kiện jQuery đã sẵn sàng
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 35000 });
 
+    // Tự động ẩn popup quảng cáo của Tenten để tránh cản trở tương tác
+    await page.addStyleTag({
+      content: `
+        .popup.basic_popup.tg_popup_slide,
+        .modal-backdrop.fade.show {
+          display: none !important;
+          pointer-events: none !important;
+        }
+      `
+    });
+
     // Đợi trực tiếp tab Tìm 1 tên miền xuất hiện trên DOM để đảm bảo giao diện đã sẵn sàng
     const tabTim1 = page.getByText(/Tìm 1 tên miền/);
     await expect(tabTim1).toBeVisible({ timeout: 25000 });
@@ -274,6 +285,17 @@ test.describe('Kiểm thử tab Tìm nhiều tên miền', () => {
 
     console.log('[Tab 2] Truy cập trang chủ Tenten.vn...');
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 35000 });
+
+    // Tự động ẩn popup quảng cáo của Tenten để tránh cản trở tương tác
+    await page.addStyleTag({
+      content: `
+        .popup.basic_popup.tg_popup_slide,
+        .modal-backdrop.fade.show {
+          display: none !important;
+          pointer-events: none !important;
+        }
+      `
+    });
 
     // Đợi trực tiếp tab Tìm nhiều xuất hiện
     const tabTimNhieu = page.getByText(/Tìm nhiều tên miền/);

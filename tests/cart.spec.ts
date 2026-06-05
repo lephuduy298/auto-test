@@ -29,6 +29,17 @@ test.describe('Kiểm thử chức năng Giỏ hàng trên Tenten.vn', () => {
 
     console.log('1. Truy cập trang chủ Tenten.vn...');
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 35000 });
+
+    // Tự động ẩn popup quảng cáo của Tenten để tránh cản trước tương tác
+    await page.addStyleTag({
+      content: `
+        .popup.basic_popup.tg_popup_slide,
+        .modal-backdrop.fade.show {
+          display: none !important;
+          pointer-events: none !important;
+        }
+      `
+    });
     await page.waitForTimeout(1000);
 
     console.log('2. Tìm kiếm tên miền nhạy cảm chứa từ "hocvien" để có sẵn cảnh báo và sản phẩm trong giỏ...');
@@ -293,7 +304,7 @@ test.describe('Kiểm thử chức năng Giỏ hàng trên Tenten.vn', () => {
     // Đóng popup cảnh báo nếu có
     const closeWarningBtn = page.locator('.tg_close_pop, .close, :text("×"), :text("Đồng ý"), button:has-text("Đồng ý")').first();
     if (await closeWarningBtn.isVisible()) {
-      await closeWarningBtn.click();
+      await closeWarningBtn.click({ force: true });
       await page.waitForTimeout(1000);
     }
 

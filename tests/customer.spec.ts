@@ -31,6 +31,17 @@ test.describe('Kiểm thử Form Thông tin chủ thể', () => {
 
     console.log('1. Truy cập trang chủ Tenten.vn...');
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 35000 });
+
+    // Tự động ẩn popup quảng cáo của Tenten để tránh cản trước tương tác
+    await page.addStyleTag({
+      content: `
+        .popup.basic_popup.tg_popup_slide,
+        .modal-backdrop.fade.show {
+          display: none !important;
+          pointer-events: none !important;
+        }
+      `
+    });
     await page.waitForTimeout(1000);
 
     console.log('2. Nạp sẵn 2 tên miền độc lập vào giỏ hàng để có môi trường test giỏ hàng ổn định...');
@@ -89,7 +100,7 @@ test.describe('Kiểm thử Form Thông tin chủ thể', () => {
       // Đóng popup báo đăng nhập của Tenten đi để dọn giao diện
       const closePopupBtn = page.locator('.tg_close_pop, .close, :text("×")').first();
       if (await closePopupBtn.isVisible()) {
-        await closePopupBtn.click();
+        await closePopupBtn.click({ force: true });
         await page.waitForTimeout(1000);
       }
 
