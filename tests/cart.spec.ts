@@ -333,16 +333,16 @@ test.describe('Kiểm thử chức năng Giỏ hàng trên Tenten.vn', () => {
   test('TC_Bug_Cart_02: Kiểm thử lỗi treo Loading khi tìm kiếm tên miền đuôi có dấu trong trang kết quả', async ({ page }) => {
     console.log('Thực thi TC_Bug_Cart_02: Kiểm thử lỗi treo Loading của ô tìm kiếm phụ...');
 
-    // 1. Tìm ô tìm kiếm phụ trên giao diện trang kết quả (trang hiện tại sau khi beforeEach đã chuyển hướng sang /vi/Search/index)
-    const subSearchInput = page.locator('#keyword, input[placeholder*="Tìm kiếm"], input[class*="search"]').first();
+    // 1. Tìm ô tìm kiếm phụ trên giao diện trang kết quả
+    const subSearchInput = page.locator('#domain_search_input_2025').first();
     await expect(subSearchInput).toBeVisible({ timeout: 15000 });
 
     // 2. Nhập tên miền có đuôi có dấu: dfasdf.cóm
     console.log('Nhập tên miền lỗi dấu: dfasdf.cóm');
     await subSearchInput.fill('dfasdf.cóm');
 
-    // 3. Click nút Tìm kiếm (nút kính lúp màu xanh bên phải hoặc giả lập Enter)
-    const searchBtn = page.locator('button.btn-search, .search-btn, .search-icon, button:has(i.fa-search), a:has(i.fa-search)').first();
+    // 3. Click nút Tìm kiếm phụ
+    const searchBtn = page.locator('[id="2025_search_domain"]').first();
     if (await searchBtn.isVisible()) {
       await searchBtn.click();
     } else {
@@ -368,5 +368,91 @@ test.describe('Kiểm thử chức năng Giỏ hàng trên Tenten.vn', () => {
     await expect(allocationError).toBeVisible({ timeout: 10000 });
 
     console.log('TC_Bug_Cart_02 hoàn tất kiểm tra!');
+  });
+
+  test('TC_Bug_Cart_03: Kiểm thử lỗi ràng buộc .biz.vn và .id.vn khi bỏ tích chọn', async ({ page }) => {
+    console.log('Thực thi TC_Bug_Cart_03: Kiểm thử lỗi ràng buộc tên miền .biz.vn và .id.vn...');
+
+    // 1. Quay lại trang chủ để thực hiện tìm kiếm tên miền đuôi .biz.vn
+    await page.goto('/');
+    
+    // Tự động ẩn popup quảng cáo của Tenten để tránh cản trước tương tác
+    await page.addStyleTag({
+      content: `
+        .popup.basic_popup.tg_popup_slide,
+        .modal-backdrop.fade.show {
+          display: none !important;
+          pointer-events: none !important;
+        }
+      `
+    });
+
+    const inputDomain = page.locator('#domainNameManyInput');
+    await expect(inputDomain).toBeVisible({ timeout: 15000 });
+    
+    // Tạo tên miền ngẫu nhiên để đảm bảo chưa được đăng ký và có thể thêm vào giỏ
+    const randomSuffix = Math.floor(Math.random() * 10000000);
+    const bizDomain = `testbiz-${randomSuffix}.biz.vn`;
+    const idDomain = `testid-${randomSuffix}.id.vn`;
+
+    console.log(`Tìm kiếm tên miền .biz.vn: ${bizDomain}`);
+    await inputDomain.fill(bizDomain);
+    const searchBtn = page.locator('button.searchDomainOne');
+    await searchBtn.click();
+    
+    await page.waitForURL(/.*\/vi\/Search\/searchGpt.*/, { timeout: 45000 });
+    await page.waitForTimeout(3000);
+
+    const addBizBtn = page.getByText('Thêm giỏ hàng').first();
+    await expect(addBizBtn).toBeVisible({ timeout: 15000 });
+    await addBizBtn.click();
+    await page.waitForTimeout(3000);
+
+    // 2. Tìm kiếm tiếp tên miền đuôi .id.vn từ ô tìm kiếm phụ trên trang kết quả
+    const subSearchInput = page.locator('#domain_search_input_2025').first();
+    await expect(subSearchInput).toBeVisible({ timeout: 15000 });
+    console.log(`Tìm kiếm tên miền .id.vn: ${idDomain}`);
+    await subSearchInput.fill(idDomain);
+    
+    const subSearchBtn = page.locator('[id="2025_search_domain"]').first();
+    if (await subSearchBtn.isVisible()) {
+      await subSearchBtn.click();
+    } else {
+      await subSearchInput.press('Enter');
+    }
+    await page.waitForTimeout(4000);
+
+    const addIdBtn = page.getByText('Thêm giỏ hàng').first();
+    await expect(addIdBtn).toBeVisible({ timeout: 15000 });
+    await addIdBtn.click();
+    await page.waitForTimeout(4000);
+
+    // 3. Chuyển hướng sang trang giỏ hàng chi tiết
+    await page.goto('/vi/Cart/index', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    const cartTitle = page.getByText('Thông tin giỏ hàng');
+    await expect(cartTitle).toBeVisible({ timeout: 25000 });
+    await page.waitForTimeout(2000);
+
+    // 4. Bỏ tích chọn (uncheck) tên miền .biz.vn để không thanh toán nó
+    console.log(`Tìm checkbox của tên miền ${bizDomain} và bỏ tích chọn...`);
+    const bizCheckbox = page.locator('tr, .cart-item, div, li').filter({ hasText: bizDomain }).locator('input[type="checkbox"]').first();
+    await bizCheckbox.evaluate(node => (node as HTMLInputElement).checked = false);
+    await bizCheckbox.evaluate(node => (node as HTMLInputElement).dispatchEvent(new Event('change')));
+    await page.waitForTimeout(6000); // Chờ hệ thống cập nhật lại giỏ hàng qua AJAX
+
+    // 5. Bấm nút "Tiến hành thanh toán" (hoặc Chọn chủ thể)
+    console.log('Bấm nút Tiến hành thanh toán...');
+    const checkoutBtn = page.locator('a.choose_subject_btn, :text("Chọn chủ thể"), :text("Tiến hành thanh toán"), :text("Thanh toán")').first();
+    await expect(checkoutBtn).toBeVisible({ timeout: 15000 });
+    await checkoutBtn.click({ force: true });
+    await page.waitForTimeout(3000);
+
+    // 6. Kỳ vọng nghiệp vụ: Thông báo lỗi không được xuất hiện vì tên miền .biz.vn đã không được chọn để thanh toán.
+    // Thực tế (Bug): Khi bấm thanh toán, thông báo lỗi chặn mua đồng thời vẫn xuất hiện!
+    // Trình kiểm thử mong đợi lỗi không xuất hiện (toBeHidden). Nếu vẫn xuất hiện lỗi, testcase sẽ bị FAILED, chứng minh Bug thành công!
+    const errorMsg = page.getByText(/không thể mua đồng thời tên miền .biz.vn và .id.vn/i).first();
+    await expect(errorMsg).toBeHidden({ timeout: 10000 });
+
+    console.log('TC_Bug_Cart_03 hoàn tất kiểm tra!');
   });
 });

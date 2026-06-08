@@ -55,7 +55,7 @@ Khi kiểm thử Form Thông tin chủ thể tại trang Giỏ hàng mà tài kh
 
 ## 4. Danh sách Chi tiết Tất cả các Testcase
 
-Dự án hiện có tổng cộng **38 testcase** được phân chia thành 4 nhóm tương ứng với các file kiểm thử:
+Dự án hiện có tổng cộng **39 testcase** được phân chia thành 4 nhóm tương ứng với các file kiểm thử:
 
 ### 4.1. File: `tests/example.spec.ts` (Mẫu cơ bản - 02 Testcases)
 Dùng để kiểm tra khả năng kết nối mạng và hoạt động cơ bản của Playwright.
@@ -91,7 +91,7 @@ Kiểm thử toàn diện tính năng tìm kiếm tên miền ở cả 2 Tab: **
 | `TC_Search_02_05` | Kiểm thử tìm kiếm tên miền tiếng Việt (`tênmiềncủatôi.vn`) | Chức năng | Nhập tên miền tiếng Việt có dấu vào Tagify, hệ thống xử lý mã hóa font chữ và trả về kết quả chính xác. |
 | `TC_Search_02_06` | Kiểm thử nhập danh sách tên miền trùng lặp (`tenten.vn tenten.vn`) | Chức năng | Nhập trùng lặp tên miền. Hệ thống tự động lọc trùng và chỉ tìm kiếm duy nhất một bản ghi trên trang kết quả. |
 
-### 4.3. File: `tests/cart.spec.ts` (Chức năng Giỏ hàng - 11 Testcases)
+### 4.3. File: `tests/cart.spec.ts` (Chức năng Giỏ hàng - 12 Testcases)
 Kiểm thử các tương tác nghiệp vụ trên trang chi tiết giỏ hàng `/vi/Cart/index`.
 
 | Mã Testcase | Tên / Mô tả kịch bản | Loại Test | Kỳ vọng (Expected Result) |
@@ -107,6 +107,7 @@ Kiểm thử các tương tác nghiệp vụ trên trang chi tiết giỏ hàng 
 | `TC_Cart_09` | Kiểm thử quay lại trang chủ từ giỏ hàng | Chức năng | Click vào Logo Tenten trên giỏ hàng, hệ thống điều hướng an toàn về trang chủ và ô tìm kiếm tên miền hiển thị bình thường. |
 | `TC_Bug_Cart_01` | Kiểm thử lỗi bất nhất khi xóa sản phẩm cuối cùng trong giỏ hàng | **Xác minh Bug** | *Xác minh lỗi*: Khi xóa sản phẩm duy nhất bằng nút X thì bị chặn (hiển thị popup yêu cầu giữ lại 1 dịch vụ), nhưng nếu tích chọn sản phẩm đó rồi bấm nút "Xóa dịch vụ đã chọn" ở chân trang thì hệ thống lại cho phép xóa sạch giỏ hàng. Testcase mong muốn nút ở chân trang cũng phải chặn (giữ lại sản phẩm), thực tế sẽ bị FAIL vì giỏ hàng bị xóa sạch về 0. |
 | `TC_Bug_Cart_02` | Kiểm thử lỗi treo Loading khi tìm kiếm tên miền đuôi có dấu trong trang kết quả | **Xác minh Bug** | *Xác minh lỗi*: Ở trang kết quả, nhập tên miền có dấu (`dfasdf.cóm`) vào ô tìm kiếm phụ. Trình duyệt bị treo xoay tròn (loading) vĩnh viễn mà không bao giờ tắt hay phản hồi lỗi. Testcase mong muốn loading biến mất và báo lỗi, thực tế bị FAIL do treo trang vĩnh viễn. |
+| `TC_Bug_Cart_03` | Kiểm thử lỗi ràng buộc mua đồng thời .biz.vn và .id.vn khi bỏ tích chọn | **Xác minh Bug** | *Xác minh lỗi*: Khi trong giỏ hàng có cả tên miền `.biz.vn` và `.id.vn` nhưng người dùng bỏ tích chọn (uncheck) chúng để không thanh toán, khi bấm "Tiến hành thanh toán" hệ thống vẫn hiển thị lỗi không được mua đồng thời. Testcase mong đợi không xuất hiện lỗi chặn, thực tế sẽ bị FAIL để phát hiện lỗi logic này của website. |
 
 ### 4.4. File: `tests/customer.spec.ts` (Form Thông tin chủ thể - 10 Testcases)
 Kiểm thử các quy tắc validation dữ liệu đầu vào và luồng đăng ký thông tin chủ thể.
